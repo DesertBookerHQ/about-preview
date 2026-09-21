@@ -1,0 +1,1 @@
+import{c as t,j as r,r as e}from"./index-CpfMVeaC.js";import{L as s,P as i}from"./LegalPage-Ce32GZf3.js";const o=document.getElementById("root");if(!o)throw new Error("preview: #root is missing from index.html");t(o).render(r.jsx(e.StrictMode,{children:r.jsx(s,{doc:i})}));
