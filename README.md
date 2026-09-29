@@ -28,9 +28,38 @@ asks for it, with the email, before it writes any answer.
 | Folder | Holds |
 |---|---|
 | `apps-script/` | `Code.gs`, the script pasted into the Apps Script editor, and its tests |
-| `tools/` | The bundle patch and the browser tests |
+| `tools/` | The bundle patches, the browser tests and the server deploy script |
 
 The Dockerfile copies named paths only, so neither folder ships in the image.
+
+## Deploying the site to the server
+
+The server runs a front nginx (`desertrip_mvp-nginx-1`) that holds ports 80 and
+443 and passes requests to one site container. `tools/deploy.sh` swaps that site
+container without downtime:
+
+1. It builds this folder into an image and starts it beside the live container.
+2. It tests the new container from inside the front nginx.
+3. It points the `upstream` line of the front config at the new container and
+   reloads nginx, which finishes open requests on the old one.
+4. It checks what a visitor gets. If that is wrong, it puts the old config back.
+
+The container that was live keeps running, so going back is one reload.
+
+```sh
+bash tools/deploy.sh --check      # reads only; says READY or lists problems
+bash tools/deploy.sh              # deploy
+bash tools/deploy.sh --rollback   # back to what was live before
+```
+
+On the server, do not edit the front config with a tool that replaces the file
+(`sed -i`, some editors). It is mounted into the container as a single file, and
+a replaced file no longer reaches the container. `--check` reports this state.
+
+## Tracking
+
+Each page loads Google Analytics, Google Tag Manager and Microsoft Clarity, with
+the ids the previous site used. `tools/patch-tracking.cjs` added them.
 
 ## Deploying a script change
 
@@ -73,9 +102,16 @@ Chromium with the endpoint mocked, so neither touches the real sheet.
 
 ```sh
 docker build -t desertbooker-site .
-docker run --rm -p 8080:80 desertbooker-site
+docker run --rm -p 8090:80 desertbooker-site
 ```
 
-Then open <http://localhost:8080/>. Any static file server pointed at the
+Then open <http://localhost:8090/>. Any static file server pointed at the
 repository root works as well; the pages must be served over HTTP, not opened
 from disk. A signup made this way is written to the real sheet.
+
+**Run `docker build` again after every change.** The image is a copy of the
+files taken when it was built. `docker run` alone starts that old copy, however
+much the files have changed since.
+
+To check which form a running copy serves, open the page source and look for
+`assets/about-….js`. It must be the same name as in `index.html` here.
