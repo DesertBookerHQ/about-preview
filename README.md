@@ -73,9 +73,16 @@ Chromium with the endpoint mocked, so neither touches the real sheet.
 
 ```sh
 docker build -t desertbooker-site .
-docker run --rm -p 8080:80 desertbooker-site
+docker run --rm -p 8090:80 desertbooker-site
 ```
 
-Then open <http://localhost:8080/>. Any static file server pointed at the
+Then open <http://localhost:8090/>. Any static file server pointed at the
 repository root works as well; the pages must be served over HTTP, not opened
 from disk. A signup made this way is written to the real sheet.
+
+**Run `docker build` again after every change.** The image is a copy of the
+files taken when it was built. `docker run` alone starts that old copy, however
+much the files have changed since.
+
+To check which form a running copy serves, open the page source and look for
+`assets/about-….js`. It must be the same name as in `index.html` here.
