@@ -702,6 +702,15 @@ const Q = {
       ['Google Sheets', /stored in Google Sheets/],
     ]) check(`privacy: names ${name}`, pattern.test(text), text);
     check('privacy: removal link', (await section.locator('a[href^="mailto:"]').count()) === 1);
+    const policy = await page.locator('article').innerText();
+    check('privacy: names Google Tag Manager', /loaded through Google Tag Manager/.test(policy));
+    check('privacy: names Microsoft Clarity and what it records',
+      /Microsoft Clarity, which records how visitors move, scroll and click/.test(policy));
+    const tools = await page.locator('section', { has: page.getByRole('heading', { name: '5. Third-party services' }) })
+      .locator('li').allInnerTexts();
+    check('privacy: third-party list', same(tools,
+      ['Tally (forms)', 'Google Analytics', 'Google Tag Manager', 'Microsoft Clarity', 'Google Sheets (waitlist)']),
+      JSON.stringify(tools));
     const headings = await page.locator('article h2').allInnerTexts();
     check('privacy: headings numbered 1 to 11',
       headings.length === 11 && headings.every((h, i) => h.startsWith(`${i + 1}. `)), headings.join(' / '));
@@ -727,6 +736,19 @@ const Q = {
       check(`head ${url}`,
         head.title.length > 0 && head.description.length > 0 && head.canonical === canonical && head.robots === 0,
         JSON.stringify(head));
+
+      // The tools themselves are blocked here; this checks the page asks for them.
+      const html = await (await page.request.get(base + url)).text();
+      const count = (needle) => html.split(needle).length - 1;
+      const tags = {
+        analytics: count('gtag/js?id=G-5NJKECRKT6'),
+        tagManager: count("'GTM-546BHFXM'"),
+        tagManagerNoScript: count('ns.html?id=GTM-546BHFXM'),
+        clarity: count('"xsjmlmrlzq"'),
+      };
+      check(`tracking ${url}: each tool once`, Object.values(tags).every((n) => n === 1), JSON.stringify(tags));
+      check(`tracking ${url}: charset still first in the head`,
+        html.indexOf('<meta charset') < html.indexOf('<script'));
     }
     check('legal pages: no page errors', errors.length === 0, errors.join(' | '));
     await context.close();

@@ -1,1 +1,0 @@
-import{c as t,j as r,r as e}from"./index-CvBN1mkC.js";import{L as s,P as i}from"./LegalPage-bADsHY81.js";const o=document.getElementById("root");if(!o)throw new Error("preview: #root is missing from index.html");t(o).render(r.jsx(e.StrictMode,{children:r.jsx(s,{doc:i})}));
